@@ -1,73 +1,55 @@
-# React + TypeScript + Vite
+# 🚖 EthioRide - Real-Time Tracking App
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+EthioRide is a modern ride-hailing interface that demonstrates **Real-Time Location Tracking** using WebSockets. It replicates the core tracking experience of apps like Uber or Feres, allowing users to see their location and track a driver moving on the map instantly without page refreshes.
 
-Currently, two official plugins are available:
+## 🔗 Live Demo
+**[Click here to view the live app](https://ethio-ride.vercel.app/)**
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## ✨ Key Features
+- **📍 Real-Time Driver Tracking:** Uses **Supabase Realtime** (WebSockets) to update driver positions instantly on the map as the database changes.
+- **🗺️ Interactive Map:** Built with **Leaflet & OpenStreetMap** for a smooth, cost-free mapping experience centered on Addis Ababa.
+- **📡 Geolocation:** Integrated with the browser's **Geolocation API** to locate the user with a single click and animate the camera ("FlyTo") to their position.
+- **⚡ Reactive UI:** React state manages marker positions, ensuring 60fps smooth updates when data is received.
+- **📱 Responsive Design:** Fully optimized for mobile devices using **Tailwind CSS**.
 
-## React Compiler
+## 🛠️ Tech Stack
+- **Frontend:** React (Vite), TypeScript
+- **Mapping Engine:** React Leaflet, OpenStreetMap
+- **Styling:** Tailwind CSS, Lucide React (Icons)
+- **Backend:** Supabase (PostgreSQL)
+- **Real-Time Engine:** Supabase Realtime (Postgres Changes)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 🏗️ Architecture
+The app follows a **Subscriber-Publisher** pattern:
+1.  **The Database (Publisher):** Holds the driver's coordinates (`lat`, `lng`).
+2.  **The Client (Subscriber):** The React app opens a WebSocket connection to Supabase.
+3.  **The Trigger:** When a row in the `drivers` table is updated, Supabase broadcasts the change.
+4.  **The Update:** The React client receives the payload and updates the Map Marker position instantly.
 
-## Expanding the ESLint configuration
+## 📦 How to Run Locally
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/ethio-ride.git
+   cd ethio-ride
+2. **Install dependencies**
+   ```bash
+   npm install
+3. **Configure Environemt Variables**
+   Create a .env.local file in the root directory and add your Supabase credentials:
+   ```bash
+    VITE_SUPABASE_URL=your_supabase_project_url
+    VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+4. **Run the App**
+    ```bash
+        npm run dev
+5. **🗄️ Database Schema**
+   The app requires a Supabase table named drivers with Realtime enabled:
+     ```bash
+      Column	Type	  Description
+      id	    int8	  Primary Key
+      name	text	  Driver Name
+      lat	float8	   Latitude
+      lng	float8	   Longitude
+**👨‍💻 Author**
+Built by Estifanos Besfat as a demonstration of Real-Time geospatial technologies.
