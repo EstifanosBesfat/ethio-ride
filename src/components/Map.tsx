@@ -1,98 +1,84 @@
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet"; // <--- Added useMap
-import { Icon } from "leaflet";
-import { useState } from "react";
-import { Navigation } from "lucide-react"; // Make sure you installed lucide-react
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { Icon } from 'leaflet';
+import { useState, useEffect } from 'react'; // <--- Added useEffect
+import { Navigation } from 'lucide-react';
+import { supabase } from '../lib/supabase'; // <--- Import Supabase
 
-// 1. Custom Icons
+// ... (Keep your Icons and FlyToLocation component exactly the same) ...
+// ... I am omitting them here to save space, but DO NOT DELETE THEM ...
 const taxiIcon = new Icon({
   iconUrl: "https://cdn-icons-png.flaticon.com/512/447/447031.png",
-  iconSize: [38, 38],
+  iconSize: [38, 38]
 });
-
 const userIcon = new Icon({
-  iconUrl: "https://cdn-icons-png.flaticon.com/512/9131/9131546.png", // Different icon for YOU
-  iconSize: [38, 38],
+  iconUrl: "https://cdn-icons-png.flaticon.com/512/9131/9131546.png",
+  iconSize: [38, 38]
 });
-
-// 2. HELPER COMPONENT: This handles the camera movement
-// We must put this INSIDE MapContainer to use the 'useMap' hook
 function FlyToLocation({ coords }: { coords: [number, number] | null }) {
-  const map = useMap(); // Access the Leaflet engine
-
-  if (coords) {
-    map.flyTo(coords, 15, { duration: 2 }); // Zoom level 15, Animation 2 seconds
-  }
-  return null; // This component renders nothing visually
+  const map = useMap();
+  if (coords) map.flyTo(coords, 15, { duration: 2 });
+  return null;
 }
+// ... End of helper components ...
+
 
 export default function Map() {
-  const [userPosition, setUserPosition] = useState<[number, number] | null>(
-    null
-  );
+  const [userPosition, setUserPosition] = useState<[number, number] | null>(null);
+  
+  // 1. STATE: Where is the Taxi? (Start at Bole)
+  const [taxiPosition, setTaxiPosition] = useState<[number, number]>([8.9806, 38.7578]);
 
-  // 3. The Logic: Ask Browser for GPS
+  // 2. THE LISTENER (Realtime Logic)
+  useEffect(() => {
+    // A. Subscribe to the 'drivers' table
+    const channel = supabase
+      .channel('realtime:drivers') // Give the connection a name
+      .on(
+        'postgres_changes', // Listen for Database Changes
+        { event: 'UPDATE', schema: 'public', table: 'drivers' }, // Filter: Only Updates on 'drivers'
+        (payload) => {
+          // B. This runs whenever Supabase shouts "Update!"
+          console.log('Driver moved!', payload);
+          const { lat, lng } = payload.new; // Get new coordinates
+          setTaxiPosition([lat, lng]); // Update State -> Moves Marker
+        }
+      )
+      .subscribe();
+
+    // C. Cleanup: Hang up the phone when we leave the page
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   const handleLocateMe = () => {
-    if (!navigator.geolocation) {
-      alert("Geolocation is not supported by your browser");
-      return;
-    }
-
-    // Ask for permission and get coordinates
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        setUserPosition([latitude, longitude]);
-      },
-      (error) => {
-        alert("Unable to retrieve your location. Allow GPS access!");
-      }
-    );
+     // ... (Keep your existing geolocation logic) ...
+      if (!navigator.geolocation) return;
+      navigator.geolocation.getCurrentPosition((pos) => {
+        setUserPosition([pos.coords.latitude, pos.coords.longitude]);
+      });
   };
 
   return (
     <div style={{ height: "100vh", width: "100vw" }} className="relative">
-      <MapContainer
-        center={[9.0192, 38.7525]}
-        zoom={13}
-        style={{ height: "100%", width: "100%" }}
-      >
-        <TileLayer
-          attribution="&copy; OpenStreetMap"
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
+      <MapContainer center={[9.0192, 38.7525]} zoom={13} style={{ height: "100%", width: "100%" }}>
+        <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
-        {/* Static Taxi Marker */}
-        <Marker position={[8.9806, 38.7578]} icon={taxiIcon}>
-          <Popup>Available Taxi</Popup>
+        {/* 3. TAXI MARKER: Linked to State */}
+        <Marker position={taxiPosition} icon={taxiIcon}>
+          <Popup>Chala (Driver)</Popup>
         </Marker>
 
-        {/* YOUR Marker (Only shows if we found you) */}
-        {userPosition && (
-          <Marker position={userPosition} icon={userIcon}>
-            <Popup>You are here</Popup>
-          </Marker>
-        )}
+        {/* USER MARKER */}
+        {userPosition && <Marker position={userPosition} icon={userIcon}><Popup>You</Popup></Marker>}
 
-        {/* The Camera Controller */}
         <FlyToLocation coords={userPosition} />
       </MapContainer>
 
-      {/* FLOATING BUTTON: Locate Me */}
-      <button
-        onClick={handleLocateMe}
-        className="absolute bottom-32 right-4 z-[1000] bg-white p-3 rounded-full shadow-xl hover:bg-gray-100 text-blue-600"
-      >
+      {/* Buttons & UI... (Keep your existing UI) */}
+      <button onClick={handleLocateMe} className="absolute bottom-32 right-4 z-[1000] bg-white p-3 rounded-full shadow-xl text-blue-600">
         <Navigation size={24} />
       </button>
-
-      {/* Input Overlay */}
-      <div className="absolute bottom-10 left-4 right-4 z-[1000] bg-white p-4 rounded-xl shadow-xl">
-        <h2 className="font-bold text-lg">Where to?</h2>
-        <input
-          placeholder="Enter destination..."
-          className="w-full bg-gray-100 p-3 rounded-lg mt-2 outline-none"
-        />
-      </div>
     </div>
   );
 }
